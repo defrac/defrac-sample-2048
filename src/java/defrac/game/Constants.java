@@ -37,6 +37,13 @@ public final class Constants {
     public static final int MESSAGE_PADDING = (int) (ASPECT_RATIO * 20);
 
     @Nonnegative
+    public static final int SCORE_FONT_SIZE = (int) (ASPECT_RATIO * 34);
+    @Nonnegative
+    public static final int SCORE_FONT_COLOR = GAME_FONT_COLOR_DARK;
+    @Nonnegative
+    public static final int SCORE_PADDING = (int) (ASPECT_RATIO * 20);
+
+    @Nonnegative
     public static final int NEWGAME_BUTTON_WIDTH = (int) (ASPECT_RATIO * 160);
     @Nonnegative
     public static final int NEWGAME_BUTTON_HEIGHT = (int) (ASPECT_RATIO * 36);

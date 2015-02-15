@@ -69,7 +69,7 @@ public final class Game extends DisplayObjectContainer {
 
         Events.onKeyDown.add(new EventListener<KeyboardEvent>() {
             @Override
-            public void onEvent(KeyboardEvent e) {
+            public void onEvent(KeyboardEvent e) { System.out.println(score);
                 switch (e.keyCode) {
                     case KeyCode.LEFT:
                         left();
@@ -136,7 +136,7 @@ public final class Game extends DisplayObjectContainer {
 
         state = GAME_WON;
 
-        finish("You won!");
+        finish("You won!", "Score: "+ Integer.toString(score));
     }
 
     private void gameOver() {
@@ -144,15 +144,16 @@ public final class Game extends DisplayObjectContainer {
 
         state = GAME_OVER;
 
-        finish("Game over");
+        finish("Game over", "Score: "+ Integer.toString(score));
     }
 
-    private void finish(@Nonnull final String message) {
+    private void finish(@Nonnull final String message, @Nonnull final String score) {
         final Canvas overlay = new Canvas(WIDTH, HEIGHT);
         final Canvas button = new Canvas(NEWGAME_BUTTON_WIDTH, NEWGAME_BUTTON_HEIGHT);
 
         DrawUtil.drawRect(overlay, 0x9fffffff, BACKGROUND_ROUNDED_CORNER);
-        DrawUtil.drawTextCentered(overlay, message, 0, -button.height() - MESSAGE_PADDING, MESSAGE_FONT_SIZE, MESSAGE_FONT_COLOR);
+        DrawUtil.drawTextCentered(overlay, message, 0, -button.height() - MESSAGE_PADDING - SCORE_PADDING - SCORE_FONT_SIZE, MESSAGE_FONT_SIZE, MESSAGE_FONT_COLOR);
+        DrawUtil.drawTextCentered(overlay, score, 0, -button.height() - SCORE_PADDING, SCORE_FONT_SIZE, SCORE_FONT_COLOR);
 
         DrawUtil.drawRect(button, NEWGAME_BUTTON_BACKGROUND_COLOR, NEWGAME_BUTTON_ROUNDED_CORNER);
         DrawUtil.drawTextCentered(button, "New Game", NEWGAME_BUTTON_FONT_SIZE, NEWGAME_BUTTON_FONT_COLOR);

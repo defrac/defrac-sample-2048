@@ -2,27 +2,19 @@ package defrac.game;
 
 import defrac.display.Canvas;
 
-import static defrac.game.Constants.*;
+import javax.annotation.Nonnull;
 
 /**
- * @author Tim Richter
  */
 public final class Background extends Canvas {
-    public Background() {
-        super(WIDTH, HEIGHT);
+    public Background(@Nonnull final GameContext context) {
+        super(context.width, context.height);
 
-        paint();
-    }
+        DrawUtil.drawRect(this, context.backgroundColor, context.backgroundCorner);
 
-    private void paint() {
-        DrawUtil.drawRect(this, BACKGROUND_COLOR, BACKGROUND_ROUNDED_CORNER);
-
-        final int padding = TILE_SIZE + TILE_PADDING;
-
-        for (int i = 0, x = TILE_PADDING; i < TILE_COUNT; ++i, x += padding) {
-            for (int j = 0, y = TILE_PADDING; j < TILE_COUNT; ++j, y += padding) {
-                DrawUtil.drawRect(this, x, y, TILE_SIZE, TILE_SIZE,
-                        TILE_BACKGROUND_COLOR_DEFAULT, TILE_ROUNDED_CORNER);
+        for (int i = 0, x = context.tilePadding; i < context.tileCount; ++i, x += context.tileWidth + context.tilePadding) {
+            for (int j = 0, y = context.tilePadding; j < context.tileCount; ++j, y += context.tileHeight + context.tilePadding) {
+                DrawUtil.drawRect(this, x, y, context.tileWidth, context.tileHeight, context.tileColor, context.tileCorner);
             }
         }
     }

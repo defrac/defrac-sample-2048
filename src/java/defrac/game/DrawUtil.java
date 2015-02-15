@@ -8,7 +8,6 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 /**
- * @author Tim Richter
  */
 public final class DrawUtil {
     public static void drawRect(@Nonnull final Canvas canvas,

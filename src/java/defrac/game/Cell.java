@@ -3,7 +3,6 @@ package defrac.game;
 import javax.annotation.Nonnegative;
 
 /**
- * @author Tim Richter
  */
 public final class Cell {
     @Nonnegative

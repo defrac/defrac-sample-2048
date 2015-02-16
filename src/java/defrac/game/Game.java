@@ -38,6 +38,8 @@ public final class Game extends DisplayObjectContainer {
     private boolean[][] merged;
     @Nonnegative
     private int state;
+    @Nonnegative
+    private int score;
 
     private boolean moved;
 
@@ -138,7 +140,7 @@ public final class Game extends DisplayObjectContainer {
 
         state = GAME_WON;
 
-        finish("You won!");
+        finish("You won!", "Score: "+ score);
     }
 
     private void gameOver() {
@@ -146,16 +148,17 @@ public final class Game extends DisplayObjectContainer {
 
         state = GAME_OVER;
 
-        finish("Game over");
+        finish("Game over!", "Score: "+ score);
     }
 
-    private void finish(@Nonnull final String message) {
+    private void finish(@Nonnull final String message, @Nonnull final String score) {
         final Canvas overlay = new Canvas(width(), height());
         final Canvas button = new Canvas(context.newGameButtonWidth, context.newGameButtonHeight);
 
         DrawUtil.drawRect(overlay, 0x9fffffff, context.backgroundCorner);
         DrawUtil.drawTextCentered(overlay, message, 0, -button.height() - context.messagePadding,
                 context.messageFontSize, context.messageFontColor);
+        DrawUtil.drawTextCentered(overlay, score, 0, -button.height() - SCORE_PADDING, SCORE_FONT_SIZE, SCORE_FONT_COLOR);
 
         DrawUtil.drawRect(button, context.newGameButtonColor, context.newGameButtonCorner);
         DrawUtil.drawTextCentered(button, "New Game", context.newGameButtonFontSize, context.newGameButtonFontColor);
@@ -342,6 +345,8 @@ public final class Game extends DisplayObjectContainer {
     }
 
     private void updateScore(@Nonnegative final int value) {
+        score += value;
+
         if (value == 2048) {
             gameWon();
         }

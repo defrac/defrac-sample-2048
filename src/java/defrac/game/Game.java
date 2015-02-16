@@ -11,6 +11,10 @@ import defrac.event.EventListener;
 import defrac.event.Events;
 import defrac.event.KeyboardEvent;
 import defrac.event.SwipeEvent;
+import defrac.lang.Procedure;
+import defrac.lang.Supplier;
+import defrac.pool.ObjectPool;
+import defrac.pool.ObjectPools;
 import defrac.util.KeyCode;
 
 import javax.annotation.Nonnegative;
@@ -43,10 +47,35 @@ public final class Game extends DisplayObjectContainer {
 
     private boolean moved;
 
+    @Nonnull
+    private final ObjectPool<Tile> tilePool;
+
+    @Nonnull
+    private final Canvas newGameOverlay;
+
+    @Nonnull
+    private final Canvas newGameButton;
+
     public Game(@Nonnull final Stage stage) {
         this.context = new GameContext(stage);
         this.tiles = new Tile[context.tileCount][context.tileCount];
         this.merged = new boolean[context.tileCount][context.tileCount];
+        this.tilePool = ObjectPools.newMaxSizePool(
+            context.tileCount + context.tileCount * context.tileCount,
+            new Supplier<Tile>() {
+                @Override
+                public Tile get() {
+                    return new Tile(context);
+                }
+            },
+            new Procedure<Tile>() {
+                @Override
+                public void apply(final Tile tile) {
+                    removeChild(tile);
+                }
+            });
+        this.newGameOverlay = new Canvas(context.width, context.height);
+        this.newGameButton = createNewGameButton();
 
         addChild(new Background(context));
 
@@ -90,6 +119,32 @@ public final class Game extends DisplayObjectContainer {
                 }
             }
         });
+    }
+
+    @Nonnull
+    private Canvas createNewGameButton() {
+        Canvas button = new Canvas(context.newGameButtonWidth, context.newGameButtonHeight);
+
+        DrawUtil.drawRect(button, context.newGameButtonColor, context.newGameButtonCorner);
+        DrawUtil.drawTextCentered(button, "New Game", context.newGameButtonFontSize, context.newGameButtonFontColor);
+
+        button.moveTo(context.width / 2, context.height / 2 + context.messagePadding).centerRegistrationPoint();
+
+        button.listener(new SimpleListener() {
+            @Override
+            public void onPointerDown(@Nonnull DisplayObject target, @Nonnull UIActionEvent event) {
+                Animation.create(context.durationAlphaTween, Alpha.to(newGameOverlay, 0), Alpha.to(newGameButton, 0)).
+                    listener(new Animation.SimpleListener() {
+                        @Override
+                        public void onComplete(@Nonnull Animation animation) {
+                            removeChild(newGameOverlay);
+                            removeChild(newGameButton);
+                            start();
+                        }
+                    }).start();
+            }
+        });
+        return button;
     }
 
     public boolean isGameTerminated() {
@@ -152,38 +207,19 @@ public final class Game extends DisplayObjectContainer {
     }
 
     private void finish(@Nonnull final String message, @Nonnull final String score) {
-        final Canvas overlay = new Canvas(width(), height());
-        final Canvas button = new Canvas(context.newGameButtonWidth, context.newGameButtonHeight);
+        newGameOverlay.graphics().clearRect(0.0f, 0.0f, newGameOverlay.width(), newGameOverlay.height());
 
-        DrawUtil.drawRect(overlay, 0x9fffffff, context.backgroundCorner);
-        DrawUtil.drawTextCentered(overlay, message, 0,
-            -button.height() - context.messagePadding - context.scorePadding - context.scoreFontSize,
+        DrawUtil.drawRect(newGameOverlay, 0x9fffffff, context.backgroundCorner);
+        DrawUtil.drawTextCentered(newGameOverlay, message, 0,
+            -newGameButton.height() - context.messagePadding - context.scorePadding - context.scoreFontSize,
             context.messageFontSize, context.messageFontColor);
-        DrawUtil.drawTextCentered(overlay, score, 0, -button.height() - context.scorePadding,
+        DrawUtil.drawTextCentered(newGameOverlay, score, 0, -newGameButton.height() - context.scorePadding,
             context.scoreFontSize, context.scoreFontColor);
 
-        DrawUtil.drawRect(button, context.newGameButtonColor, context.newGameButtonCorner);
-        DrawUtil.drawTextCentered(button, "New Game", context.newGameButtonFontSize, context.newGameButtonFontColor);
+        addChild(newGameOverlay);
+        addChild(newGameButton);
 
-        addChild(overlay);
-        addChild(button).moveTo(width() / 2, height() / 2 + context.messagePadding).centerRegistrationPoint();
-
-        Animation.create(context.durationAlphaTween, Alpha.to(overlay, 0f, 1f), Alpha.to(button, 0f, 1f)).start();
-
-        button.listener(new SimpleListener() {
-            @Override
-            public void onPointerDown(@Nonnull DisplayObject target, @Nonnull UIActionEvent event) {
-                Animation.create(context.durationAlphaTween, Alpha.to(overlay, 0), Alpha.to(button, 0)).
-                        listener(new Animation.SimpleListener() {
-                            @Override
-                            public void onComplete(@Nonnull Animation animation) {
-                                removeChild(overlay);
-                                removeChild(button);
-                                start();
-                            }
-                        }).start();
-            }
-        });
+        Animation.create(context.durationAlphaTween, Alpha.to(newGameOverlay, 0f, 1f), Alpha.to(newGameButton, 0f, 1f)).start();
     }
 
     private void right() {
@@ -409,7 +445,7 @@ public final class Game extends DisplayObjectContainer {
 
         final Cell cell = cells.get((int) Math.floor(Math.random() * cells.size()));
 
-        final Tile tile = new Tile(context, cell.x, cell.y, Math.random() < 0.9 ? 2 : 4);
+        final Tile tile = tilePool.get().init(cell.x, cell.y, Math.random() < 0.9 ? 2 : 4);
 
         tile.moveTo(context.indexToXPosition(tile.x), context.indexToYPosition(tile.y));
 
@@ -461,7 +497,7 @@ public final class Game extends DisplayObjectContainer {
 
         final int value = tile.value * 2;
 
-        final Tile merge = new Tile(context, next.x, next.y, value);
+        final Tile merge = tilePool.get().init(next.x, next.y, value);
         merge.moveTo(context.indexToXPosition(merge.x), context.indexToYPosition(merge.y));
 
         addChild(merge);
@@ -476,8 +512,8 @@ public final class Game extends DisplayObjectContainer {
         animateMove(tile, next.x, next.y).listener(new Animation.SimpleListener() {
             @Override
             public void onComplete(@Nonnull Animation animation) {
-                removeChild(tile);
-                removeChild(next);
+                tilePool.ret(tile);
+                tilePool.ret(next);
             }
         }).start();
 

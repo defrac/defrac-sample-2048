@@ -41,6 +41,13 @@ public final class GameContext {
     public final int messagePadding;
 
     @Nonnegative
+    public final int scoreFontSize;
+    @Nonnegative
+    public final int scoreFontColor;
+    @Nonnegative
+    public final int scorePadding;
+
+    @Nonnegative
     public final int newGameButtonWidth;
     @Nonnegative
     public final int newGameButtonHeight;
@@ -85,6 +92,10 @@ public final class GameContext {
         this.messageFontSize = (int) (ASPECT_RATIO * 68);
         this.messageFontColor = colorDark;
         this.messagePadding = (int) (ASPECT_RATIO * 20);
+
+        this.scoreFontSize = (int) (ASPECT_RATIO * 34);
+        this.scoreFontColor = colorDark;
+        this.scorePadding = (int) (ASPECT_RATIO * 20);
 
         this.newGameButtonWidth = (int) (ASPECT_RATIO * 160);
         this.newGameButtonHeight = (int) (ASPECT_RATIO * 36);

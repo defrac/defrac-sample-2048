@@ -156,15 +156,19 @@ public final class Game extends DisplayObjectContainer {
         final Canvas button = new Canvas(context.newGameButtonWidth, context.newGameButtonHeight);
 
         DrawUtil.drawRect(overlay, 0x9fffffff, context.backgroundCorner);
-        DrawUtil.drawTextCentered(overlay, message, 0, -button.height() - context.messagePadding,
-                context.messageFontSize, context.messageFontColor);
-        DrawUtil.drawTextCentered(overlay, score, 0, -button.height() - SCORE_PADDING, SCORE_FONT_SIZE, SCORE_FONT_COLOR);
+        DrawUtil.drawTextCentered(overlay, message, 0,
+            -button.height() - context.messagePadding - context.scorePadding - context.scoreFontSize,
+            context.messageFontSize, context.messageFontColor);
+        DrawUtil.drawTextCentered(overlay, score, 0, -button.height() - context.scorePadding,
+            context.scoreFontSize, context.scoreFontColor);
 
         DrawUtil.drawRect(button, context.newGameButtonColor, context.newGameButtonCorner);
         DrawUtil.drawTextCentered(button, "New Game", context.newGameButtonFontSize, context.newGameButtonFontColor);
 
         addChild(overlay);
-        addChild(button).centerRegistrationPoint().moveTo(width() / 2, height() / 2 + context.messagePadding);
+        addChild(button).moveTo(
+            (width() - context.newGameButtonWidth) / 2,
+            (height() - context.newGameButtonHeight) / 2 + context.messagePadding);
 
         Animation.create(context.durationAlphaTween, Alpha.to(overlay, 0f, 1f), Alpha.to(button, 0f, 1f)).start();
 

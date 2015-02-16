@@ -166,9 +166,7 @@ public final class Game extends DisplayObjectContainer {
         DrawUtil.drawTextCentered(button, "New Game", context.newGameButtonFontSize, context.newGameButtonFontColor);
 
         addChild(overlay);
-        addChild(button).moveTo(
-            (width() - context.newGameButtonWidth) / 2,
-            (height() - context.newGameButtonHeight) / 2 + context.messagePadding);
+        addChild(button).moveTo(width() / 2, height() / 2 + context.messagePadding).centerRegistrationPoint();
 
         Animation.create(context.durationAlphaTween, Alpha.to(overlay, 0f, 1f), Alpha.to(button, 0f, 1f)).start();
 

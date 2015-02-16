@@ -69,7 +69,7 @@ public final class Game extends DisplayObjectContainer {
 
         Events.onKeyDown.add(new EventListener<KeyboardEvent>() {
             @Override
-            public void onEvent(KeyboardEvent e) { System.out.println(score);
+            public void onEvent(KeyboardEvent e) {
                 switch (e.keyCode) {
                     case KeyCode.LEFT:
                         left();
@@ -136,7 +136,7 @@ public final class Game extends DisplayObjectContainer {
 
         state = GAME_WON;
 
-        finish("You won!", "Score: "+ Integer.toString(score));
+        finish("You won!", "Score: "+ score);
     }
 
     private void gameOver() {
@@ -144,7 +144,7 @@ public final class Game extends DisplayObjectContainer {
 
         state = GAME_OVER;
 
-        finish("Game over", "Score: "+ Integer.toString(score));
+        finish("Game over!", "Score: "+ score);
     }
 
     private void finish(@Nonnull final String message, @Nonnull final String score) {

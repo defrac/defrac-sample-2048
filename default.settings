@@ -2,7 +2,7 @@
   "name": "2048 Sample",
   "package": "com.defrac.sample",
   "identifier": "sample2048",
-  "main": "defrac.game.GameApp",
+  "main": "defrac.game.Main",
   "version": "1.0",
   "targets": [
     "ios",
@@ -12,13 +12,7 @@
   ],
   "debug": false,
   "strictMode": "false",
-  "jvm": {
-    "width": 592,
-    "height": 592
-  },
   "web": {
-    "port": 31330,
-    "width": 592,
-    "height": 592
-  },
+    "port": 31330
+  }
 }

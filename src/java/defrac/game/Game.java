@@ -7,10 +7,9 @@ import defrac.display.DisplayObject;
 import defrac.display.DisplayObjectContainer;
 import defrac.display.Stage;
 import defrac.display.event.UIActionEvent;
+import defrac.display.event.raw.KeyboardEvent;
+import defrac.display.event.raw.SwipeEvent;
 import defrac.event.EventListener;
-import defrac.event.Events;
-import defrac.event.KeyboardEvent;
-import defrac.event.SwipeEvent;
 import defrac.lang.Procedure;
 import defrac.lang.Supplier;
 import defrac.pool.ObjectPool;
@@ -79,7 +78,7 @@ public final class Game extends DisplayObjectContainer {
 
         addChild(new Background(context));
 
-        Events.onSwipe.add(new EventListener<SwipeEvent>() {
+        stage.globalEvents().onSwipe.add(new EventListener<SwipeEvent>() {
             @Override
             public void onEvent(SwipeEvent e) {
                 switch (e.direction) {
@@ -100,7 +99,7 @@ public final class Game extends DisplayObjectContainer {
             }
         });
 
-        Events.onKeyDown.add(new EventListener<KeyboardEvent>() {
+        stage.globalEvents().onKeyDown.add(new EventListener<KeyboardEvent>() {
             @Override
             public void onEvent(KeyboardEvent e) {
                 switch (e.keyCode) {

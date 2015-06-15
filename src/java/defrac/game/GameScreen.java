@@ -22,10 +22,11 @@ public final class GameScreen extends Screen {
         displayList = new DisplayList();
         displayList.layoutConstraints(layoutConstraints);
 
-        displayList.root().onSuccess(stage -> {
+        displayList.onStageReady(stage -> {
             final Game game = new Game(stage);
             game.start();
 
+            stage.backgroundColor(0xffffffff);
             stage.addChild(game);
         });
 

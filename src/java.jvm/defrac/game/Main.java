@@ -13,6 +13,7 @@ public final class Main {
                 forScreen(new GameScreen()).
                 width(592).height(592).
                 title("2048").
+                backgroundColor(0xffffffff).
                 resizable().
                 show()
     );

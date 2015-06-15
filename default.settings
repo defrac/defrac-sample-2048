@@ -1,18 +1,17 @@
 {
-  "name": "2048 Sample",
-  "package": "com.defrac.sample",
-  "identifier": "sample2048",
-  "main": "defrac.game.Main",
+  "name": "2048",
+  "package": "com.defrac.sample.game2048",
   "version": "1.0",
+
+  "main": "defrac.game.Main",
+
   "targets": [
     "ios",
     "jvm",
     "web",
     "android"
   ],
+
   "debug": false,
-  "strictMode": "false",
-  "web": {
-    "port": 31330
-  }
+  "strictMode": false
 }

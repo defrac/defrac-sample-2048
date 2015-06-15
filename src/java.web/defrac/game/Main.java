@@ -16,7 +16,7 @@ public final class Main {
     final HTMLDocument document = checkNotNull((HTMLDocument)window().document);
     final HTMLBodyElement body = checkNotNull((HTMLBodyElement)document.body);
 
-    body.style.backgroundColor = "#000";
+    body.style.backgroundColor = "#fff";
 
     FrameBuilder.
         forScreen(new GameScreen()).

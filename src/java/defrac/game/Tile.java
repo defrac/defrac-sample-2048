@@ -10,44 +10,89 @@ import javax.annotation.Nullable;
 /**
  */
 public final class Tile extends Canvas {
-    @Nonnull
-    private final GameContext context;
+  @Nonnull
+  public final Context context;
+  @Nullable
+  public Cell cell;
+  @Nonnegative
+  public int value;
+  @Nullable
+  public Animation movement;
+  @Nullable
+  public Animation scaling;
 
-    @Nonnegative
-    public int x;
-    @Nonnegative
-    public int y;
-    @Nonnegative
-    public int value;
+  public Tile(@Nonnull final Context context) {
+    super(context.style.tileWidth, context.style.tileHeight);
+    this.context = context;
+  }
 
-    @Nullable
-    public Animation animation;
+  @Nonnull
+  public Cell cell() {
+    assert cell != null;
+    return cell;
+  }
 
-    public Tile(@Nonnull final GameContext context) {
-      super(context.tileWidth, context.tileHeight);
-      this.context = context;
+  @Nonnull
+  public Tile cell(@Nonnull final Cell cell) {
+    this.cell = cell;
+    return this;
+  }
+
+  @Nonnegative
+  public int value() {
+    return value;
+  }
+
+  @Nonnull
+  public Tile value(@Nonnegative final int value) {
+    if (this.value != value) {
+      this.value = value;
+
+      // redraw tile
+      graphics().clearRect(0, 0, width(), height());
+
+      GraphicsUtil.drawRect(this, context.style.tileBackgroundColorFromValue(value), context.style.tileCorner);
+
+      GraphicsUtil.drawTextCentered(this, String.valueOf(value), context.style.tileFont,
+          context.style.tileFontSizeFromValue(value), context.style.tileFontColorFromValue(value));
+    }
+    return this;
+  }
+
+  public void moveTo(@Nonnull final Cell cell) {
+    moveTo(cell.xCoordinate(), cell.yCoordinate());
+  }
+
+  @Nonnull
+  public Animation animation() {
+    assert movement != null;
+    return movement;
+  }
+
+  public void animate(@Nonnull final Animation animation) {
+    if (this.movement != null) {
+      this.movement.stop(true);
     }
 
-    @Nonnull
-    public Tile init(@Nonnegative final int x,
-                     @Nonnegative final int y,
-                     @Nonnegative final int value) {
-      this.x = x;
-      this.y = y;
+    this.movement = animation.start();
+  }
 
-      if(value != this.value) {
-        this.value = value;
+  @Nonnull
+  public Tile dispose() {
+    assert parent != null;
 
-        graphics().clearRect(0.0f, 0.0f, width(), height());
+    parent.removeChild(this);
 
-        DrawUtil.drawRect(this, context.tileBackgroundColorFromValue(value),
-            context.tileCorner);
-
-        DrawUtil.drawTextCentered(this, String.valueOf(value),
-            context.tileFontSizeFromValue(value),
-            context.tileFontColorFromValue(value));
-      }
-
-      return this;
+    if(movement != null) {
+      movement.stop();
+      movement = null;
     }
+
+    if(scaling != null) {
+      scaling.stop();
+      scaling = null;
+    }
+
+    return this;
+  }
 }

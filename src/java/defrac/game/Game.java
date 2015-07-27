@@ -1,548 +1,256 @@
 package defrac.game;
 
 import defrac.animation.Animation;
-import defrac.animation.property.display.*;
+import defrac.animation.property.display.Alpha;
+import defrac.animation.property.display.Scale;
+import defrac.animation.property.display.Y;
 import defrac.display.Canvas;
 import defrac.display.DisplayObject;
 import defrac.display.DisplayObjectContainer;
 import defrac.display.Stage;
 import defrac.display.event.UIActionEvent;
-import defrac.display.event.raw.KeyboardEvent;
-import defrac.display.event.raw.SwipeEvent;
-import defrac.event.EventListener;
-import defrac.lang.Procedure;
-import defrac.lang.Supplier;
-import defrac.pool.ObjectPool;
-import defrac.pool.ObjectPools;
-import defrac.util.KeyCode;
+import defrac.math.easing.Quadratic;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  */
 public final class Game extends DisplayObjectContainer {
-    @Nonnegative
-    private static final int GAME_PLAY = 1;
-    @Nonnegative
-    private static final int GAME_WON = 2;
-    @Nonnegative
-    private static final int GAME_OVER = 3;
+  @Nonnull
+  private final Context context;
+  @Nonnull
+  private final Grid grid;
+  @Nonnull
+  private final Canvas message;
+  @Nonnull
+  private final Canvas tryAgainButton;
 
-    @Nonnull
-    private final GameContext context;
-    @Nonnull
-    private final Tile[][] tiles;
-    @Nonnull
-    private boolean[][] merged;
-    @Nonnegative
-    private int state;
-    @Nonnegative
-    private int score;
+  public Game(@Nonnull final Context context) {
+    this.context = context;
 
-    private boolean moved;
+    createBackground();
+    createScore();
+    createHighScore();
+    createNewGameButton();
+    grid = createGrid();
+    message = createMessage();
+    tryAgainButton = createTryAgainButton();
 
-    @Nonnull
-    private final ObjectPool<Tile> tilePool;
+    context.add(new Model.Listener() {
+      @Override
+      public void onEvent(@Nonnegative int event) {
+        switch (event) {
+          case Context.GAME_OVER_EVENT:
+            showMessage("Game Over!");
+            break;
 
-    @Nonnull
-    private final Canvas newGameOverlay;
+          case Context.GAME_WON_EVENT:
+            showMessage("Game Won!");
+            break;
 
-    @Nonnull
-    private final Canvas newGameButton;
-
-    public Game(@Nonnull final Stage stage) {
-        this.context = new GameContext(stage);
-        this.tiles = new Tile[context.tileCount][context.tileCount];
-        this.merged = new boolean[context.tileCount][context.tileCount];
-        this.tilePool = ObjectPools.newMaxSizePool(
-            context.tileCount + context.tileCount * context.tileCount,
-            new Supplier<Tile>() {
-                @Override
-                public Tile get() {
-                    return new Tile(context);
-                }
-            },
-            new Procedure<Tile>() {
-                @Override
-                public void apply(final Tile tile) {
-                    removeChild(tile);
-                }
-            });
-        this.newGameOverlay = new Canvas(context.width, context.height);
-        this.newGameButton = createNewGameButton();
-
-        addChild(new Background(context));
-
-        stage.globalEvents().onSwipe.add(new EventListener<SwipeEvent>() {
-            @Override
-            public void onEvent(SwipeEvent e) {
-                switch (e.direction) {
-                    case SwipeEvent.DIRECTION_DOWN:
-                        down();
-                        break;
-                    case SwipeEvent.DIRECTION_LEFT:
-                        left();
-                        break;
-                    case SwipeEvent.DIRECTION_RIGHT:
-                        right();
-                        break;
-                    case SwipeEvent.DIRECTION_UP:
-                        up();
-                        break;
-                }
-
-            }
-        });
-
-        stage.globalEvents().onKeyDown.add(new EventListener<KeyboardEvent>() {
-            @Override
-            public void onEvent(KeyboardEvent e) {
-                switch (e.keyCode) {
-                    case KeyCode.LEFT:
-                        left();
-                        break;
-                    case KeyCode.RIGHT:
-                        right();
-                        break;
-                    case KeyCode.DOWN:
-                        down();
-                        break;
-                    case KeyCode.UP:
-                        up();
-                        break;
-                }
-            }
-        });
-    }
-
-    @Nonnull
-    private Canvas createNewGameButton() {
-        Canvas button = new Canvas(context.newGameButtonWidth, context.newGameButtonHeight);
-
-        DrawUtil.drawRect(button, context.newGameButtonColor, context.newGameButtonCorner);
-        DrawUtil.drawTextCentered(button, "New Game", context.newGameButtonFontSize, context.newGameButtonFontColor);
-
-        button.moveTo(context.width / 2, context.height / 2 + context.messagePadding).centerRegistrationPoint();
-
-        button.listener(new SimpleListener() {
-            @Override
-            public void onPointerDown(@Nonnull DisplayObject target, @Nonnull UIActionEvent event) {
-                Animation.create(context.durationAlphaTween, Alpha.to(newGameOverlay, 0), Alpha.to(newGameButton, 0)).
-                    listener(new Animation.SimpleListener() {
-                        @Override
-                        public void onComplete(@Nonnull Animation animation) {
-                            removeChild(newGameOverlay);
-                            removeChild(newGameButton);
-                            start();
-                        }
-                    }).start();
-            }
-        });
-        return button;
-    }
-
-    public boolean isGameTerminated() {
-        return state == GAME_OVER || state == GAME_WON;
-    }
-
-    public void start() {
-        state = GAME_PLAY;
-
-        updateScore(0);
-
-        final Iterator<DisplayObject> iterator = iterator();
-
-        while (iterator.hasNext()) {
-            final DisplayObject displayObject = iterator.next();
-
-            if (displayObject instanceof Tile) {
-                final Tile tile = (Tile) displayObject;
-
-                iterator.remove();
-
-                tiles[tile.x][tile.y] = null;
-            }
+          case Context.GAME_PLAY_EVENT:
+            message.visible(false);
+            tryAgainButton.visible(false);
+            grid.reset();
+            grid.addRandomTile();
+            grid.addRandomTile();
+            break;
         }
+      }
+    });
+  }
 
-        addRandomTile();
-        addRandomTile();
-    }
+  public void start() {
+    context.gamePlay();
+  }
 
-    private void prepareMove() {
-        merged = new boolean[context.tileCount][context.tileCount];
+  private void showMessage(@Nonnull final String text) {
+    message.graphics().clearRect(0, 0, message.width(), message.height());
 
-        moved = false;
-    }
+    // draw message text
+    GraphicsUtil.drawTextCentered(message, text, context.style.messageFont,
+        context.style.messageFontSize, context.style.messageFontColor);
 
-    private void validateMove() {
-        if (moved) {
-            addRandomTile();
+    message.visible(true);
+    tryAgainButton.visible(true);
 
-            if (!playable()) {
-                gameOver();
-            }
+    // fade out grid and fade in message and try again button
+    Animation.create(context.style.durationFadeTween,
+        Alpha.to(message, 1), Alpha.to(tryAgainButton, 1), Alpha.to(grid, 0.6f)).start();
+  }
+
+  @Nonnull
+  private Canvas createBackground() {
+    final Canvas canvas = new Canvas(context.width, context.height);
+
+    GraphicsUtil.drawRect(canvas, context.style.backgroundColor, context.style.backgroundCorner);
+
+    addChild(canvas);
+
+    return canvas;
+  }
+
+  @Nonnull
+  private Canvas createHighScore() {
+    final Canvas canvas = new Canvas(context.style.highScoreWidth, context.style.highScoreHeight);
+    final Canvas counter = new Canvas(context.style.highScoreCounterWidth, context.style.highScoreCounterHeight);
+
+    GraphicsUtil.drawRect(canvas, context.style.highScoreColor, context.style.highScoreCorner);
+    GraphicsUtil.drawTextCentered(canvas, "HIGH SCORE", context.style.highScoreTitleXOffset, context.style.highScoreTitleYOffset,
+        context.style.highScoreTitleFont, context.style.highScoreTitleFontSize, context.style.highScoreTitleFontColor);
+
+    canvas.moveTo(context.style.highScoreX, context.style.highScoreY);
+    counter.moveTo(canvas.x() + canvas.width() / 2 + context.style.highScoreCounterXOffset,
+        canvas.y() + canvas.height() / 2 + context.style.highScoreCounterYOffset).centerRegistrationPoint();
+
+    context.add(new Model.Listener() {
+      @Override
+      public void onEvent(@Nonnegative int event) {
+        if (event == Context.HIGH_SCORE_EVENT) {
+          counter.graphics().clearRect(0f, 0f, counter.width(), counter.height());
+
+          GraphicsUtil.drawTextCentered(counter, String.valueOf(context.highScore),
+              context.style.highScoreCounterFont, context.style.highScoreCounterFontSize,
+              context.style.highScoreCounterFontColor);
         }
-    }
+      }
+    });
 
-    private void gameWon() {
-        assert state != GAME_WON;
+    addChild(canvas);
+    addChild(counter);
 
-        state = GAME_WON;
+    return canvas;
+  }
 
-        finish("You won!", "Score: "+ score);
-    }
+  @Nonnull
+  private Canvas createScore() {
+    final Canvas canvas = new Canvas(context.style.scoreWidth, context.style.scoreHeight);
+    final Canvas counter = new Canvas(context.style.scoreCounterWidth, context.style.scoreCounterHeight);
+    final Canvas counterPlus = new Canvas(counter.width(), counter.height());
 
-    private void gameOver() {
-        assert state != GAME_OVER;
+    counterPlus.alpha(0);
 
-        state = GAME_OVER;
+    GraphicsUtil.drawRect(canvas, context.style.scoreColor, context.style.scoreCorner);
+    GraphicsUtil.drawTextCentered(canvas, "SCORE", context.style.scoreTitleXOffset, context.style.scoreTitleYOffset,
+        context.style.scoreTitleFont, context.style.scoreTitleFontSize, context.style.scoreTitleFontColor);
 
-        finish("Game over!", "Score: "+ score);
-    }
+    canvas.moveTo(context.style.scoreX, context.style.scoreY);
+    counter.moveTo(canvas.x() + canvas.width() / 2 + context.style.scoreCounterXOffset,
+        canvas.y() + canvas.height() / 2 + context.style.scoreCounterYOffset).
+        centerRegistrationPoint();
+    counterPlus.moveTo(counter.x(), counter.y()).
+        centerRegistrationPoint();
 
-    private void finish(@Nonnull final String message, @Nonnull final String score) {
-        newGameOverlay.graphics().clearRect(0.0f, 0.0f, newGameOverlay.width(), newGameOverlay.height());
+    final Animation animation = Animation.create(context.style.durationFadeTween,
+        Alpha.to(counterPlus, 1f, 0f),
+        Scale.to(counterPlus, 1f, 1f, 0.8f, 0.8f),
+        Y.to(counterPlus, counter.y(), counter.y() + context.style.scoreCounterAnimationYOffset)
+    ).easing(Quadratic.IN);
 
-        DrawUtil.drawRect(newGameOverlay, 0x9fffffff, context.backgroundCorner);
-        DrawUtil.drawTextCentered(newGameOverlay, message, 0,
-            -newGameButton.height() - context.messagePadding - context.scorePadding - context.scoreFontSize,
-            context.messageFontSize, context.messageFontColor);
-        DrawUtil.drawTextCentered(newGameOverlay, score, 0, -newGameButton.height() - context.scorePadding,
-            context.scoreFontSize, context.scoreFontColor);
+    context.add(new Model.Listener() {
+      @Override
+      public void onEvent(@Nonnegative int event) {
+        if (event == Context.SCORE_EVENT) {
+          counter.graphics().clearRect(0f, 0f, counter.width(), counter.height());
 
-        addChild(newGameOverlay);
-        addChild(newGameButton);
+          GraphicsUtil.drawTextCentered(counter, String.valueOf(context.score),
+              context.style.scoreCounterFont, context.style.scoreCounterFontSize,
+              context.style.scoreCounterFontColor);
 
-        Animation.create(context.durationAlphaTween, Alpha.to(newGameOverlay, 0f, 1f), Alpha.to(newGameButton, 0f, 1f)).start();
-    }
-
-    private void right() {
-        if (isGameTerminated()) {
+          if (context.tileValue == 0) {
+            // we do not show +0 animate
             return;
+          }
+
+          counterPlus.graphics().clearRect(0f, 0f, counterPlus.width(), counterPlus.height());
+
+          GraphicsUtil.drawTextCentered(counterPlus, "+" + String.valueOf(context.tileValue),
+              context.style.scoreCounterAnimationFont, context.style.scoreCounterAnimationFontSize,
+              context.style.scoreCounterAnimationFontColor);
+
+          animation.start();
         }
+      }
+    });
 
-        prepareMove();
+    addChild(canvas);
+    addChild(counter);
+    addChild(counterPlus);
 
-        // traverse each row
-        for (int y = 0; y < tiles.length; ++y) {
+    return canvas;
+  }
 
-            // from right to left
-            for (int x = tiles.length - 2; x >= 0; --x) {
-                final Tile tile = tiles[x][y];
+  @Nonnull
+  private Grid createGrid() {
+    final Grid grid = new Grid(context);
 
-                if (tile == null) {
-                    continue;
-                }
+    grid.moveTo(context.style.gridX, context.style.gridY);
 
-                Tile next = null;
-                int nx = x + 1;
+    addChild(grid);
 
-                // now search for the next occupied tile
-                while (nx < tiles.length) {
-                    next = tiles[nx][y];
+    return grid;
+  }
 
-                    if (next != null) {
-                        break;
-                    }
-                    nx++;
-                }
+  @Nonnull
+  private Canvas createMessage() {
+    final Canvas canvas = new Canvas(context.style.messageWidth, context.style.messageHeight);
 
-                if (!mergeTiles(tile, next)) {
-                    moveTile(tile, nx - 1, y);
-                }
-            }
-        }
+    canvas.visible(false);
+    canvas.moveTo(context.style.messageX, context.style.messageY);
 
-        validateMove();
-    }
+    addChild(canvas);
 
-    private void down() {
-        if (isGameTerminated()) {
-            return;
-        }
+    return canvas;
+  }
 
-        prepareMove();
+  @Nonnull
+  private Canvas createTryAgainButton() {
+    final Canvas canvas = new Canvas(context.style.tryAgainButtonWidth, context.style.tryAgainButtonHeight);
 
-        // traverse each column
-        for (int x = 0; x < tiles.length; ++x) {
+    canvas.visible(false);
+    canvas.moveTo(context.style.tryAgainButtonX, context.style.tryAgainButtonY);
 
-            // from bottom to top
-            for (int y = tiles.length - 2; y >= 0; --y) {
-                final Tile tile = tiles[x][y];
+    GraphicsUtil.drawRect(canvas, context.style.tryAgainButtonColor, context.style.tryAgainButtonCorner);
+    GraphicsUtil.drawTextCentered(canvas, "Try again", context.style.tryAgainButtonFont,
+        context.style.tryAgainButtonFontSize, context.style.tryAgainButtonFontColor);
 
-                if (tile == null) {
-                    continue;
-                }
+    canvas.listener(new SimpleListener() {
+      @Override
+      public void onPointerDown(@Nonnull DisplayObject target, @Nonnull UIActionEvent event) {
+        tryAgainButton.visible(false);
+        message.visible(false);
 
-                Tile next = null;
-                int ny = y + 1;
+        grid.alpha(1);
 
-                // now search for the next occupied tile
-                while (ny < tiles.length) {
-                    next = tiles[x][ny];
+        start();
+      }
+    });
 
-                    if (next != null) {
-                        break;
-                    }
-                    ny++;
-                }
+    addChild(canvas);
 
-                if (!mergeTiles(tile, next)) {
-                    moveTile(tile, x, ny - 1);
-                }
-            }
-        }
+    return canvas;
+  }
 
-        validateMove();
-    }
+  @Nonnull
+  private Canvas createNewGameButton() {
+    final Canvas canvas = new Canvas(context.style.newGameButtonWidth, context.style.newGameButtonHeight);
 
-    private void up() {
-        if (isGameTerminated()) {
-            return;
-        }
+    canvas.moveTo(context.style.newGameButtonX, context.style.newGameButtonY);
 
-        prepareMove();
+    GraphicsUtil.drawRect(canvas, context.style.newGameButtonColor, context.style.newGameButtonCorner);
+    GraphicsUtil.drawTextCentered(canvas, "New Game", context.style.newGameButtonFont,
+        context.style.newGameButtonFontSize, context.style.newGameButtonFontColor);
 
-        // traverse each column
-        for (int x = 0; x < tiles.length; ++x) {
-
-            // from top to bottom
-            for (int y = 1; y < tiles.length; ++y) {
-                final Tile tile = tiles[x][y];
-
-                if (tile == null) {
-                    continue;
-                }
-
-                Tile next = null;
-                int ny = y - 1;
-
-                // now search for the next occupied tile
-                while (ny >= 0) {
-                    next = tiles[x][ny];
-
-                    if (next != null) {
-                        break;
-                    }
-                    ny--;
-                }
-
-                if (!mergeTiles(tile, next)) {
-                    moveTile(tile, x, ny + 1);
-                }
-            }
-        }
-
-        validateMove();
-    }
-
-    private void left() {
-        if (isGameTerminated()) {
-            return;
-        }
-
-        prepareMove();
-
-        // traverse each row
-        for (int y = 0; y < tiles.length; ++y) {
-
-            // from right to left
-            for (int x = 1; x < tiles.length; ++x) {
-                final Tile tile = tiles[x][y];
-
-                if (tile == null) {
-                    continue;
-                }
-
-                Tile next = null;
-                int nx = x - 1;
-
-                // now search for the next occupied tile
-                while (nx >= 0) {
-                    next = tiles[nx][y];
+    canvas.listener(new SimpleListener() {
+      @Override
+      public void onPointerDown(@Nonnull DisplayObject target, @Nonnull UIActionEvent event) {
+        start();
+      }
+    });
 
-                    if (next != null) {
-                        break;
-                    }
-                    nx--;
-                }
+    addChild(canvas);
 
-                if (!mergeTiles(tile, next)) {
-                    moveTile(tile, nx + 1, y);
-                }
-            }
-        }
-
-        validateMove();
-    }
-
-    private void updateScore(@Nonnegative final int value) {
-        score += value;
-
-        if (value == 2048) {
-            gameWon();
-        }
-    }
-
-    private boolean playable() {
-        for (int x = 0; x < tiles.length; ++x) {
-            for (int y = 0; y < tiles.length; ++y) {
-                final Tile tile = tiles[x][y];
-
-                if (tile == null) {
-                    return true;
-                }
-
-                if (x != 3) {
-                    // check tile to the right
-                    final Tile right = tiles[x + 1][y];
-
-                    if (right == null || right.value == tile.value) {
-                        return true;
-                    }
-                }
-
-                if (y != 3) {
-                    // check tile to the
-                    final Tile down = tiles[x][y + 1];
-
-                    if (down == null || down.value == tile.value) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    @Nonnull
-    private List<Cell> availableCells() {
-        final List<Cell> list = new ArrayList<>();
-
-        for (int x = 0; x < tiles.length; ++x) {
-            for (int y = 0; y < tiles.length; ++y) {
-                if (tiles[x][y] == null) {
-                    list.add(new Cell(x, y));
-                }
-            }
-        }
-
-        return list;
-    }
-
-    private void addRandomTile() {
-        final List<Cell> cells = availableCells();
-
-        if (cells.isEmpty()) {
-            return;
-        }
-
-        final Cell cell = cells.get((int) Math.floor(Math.random() * cells.size()));
-
-        final Tile tile = tilePool.get().init(cell.x, cell.y, Math.random() < 0.9 ? 2 : 4);
-
-        tile.moveTo(context.indexToXPosition(tile.x), context.indexToYPosition(tile.y));
-
-        addChild(tile);
-
-        tiles[tile.x][tile.y] = tile;
-
-        animateScale(tile, 0f, 1.f).start();
-    }
-
-    private void moveTile(@Nonnull final Tile tile,
-                          @Nonnegative final int x,
-                          @Nonnegative final int y) {
-        if (tile.x == x && tile.y == y) {
-            return;
-        }
-
-        updateTile(tile, tile.x, tile.y, x, y, false);
-
-        animateMove(tile, tile.x, tile.y).start();
-
-        moved = true;
-    }
-
-    private void updateTile(@Nonnull final Tile tile,
-                            @Nonnegative final int oldX,
-                            @Nonnegative final int oldY,
-                            @Nonnegative final int newX,
-                            @Nonnegative final int newY,
-                            final boolean merge) {
-        tiles[oldX][oldY] = null;
-        tiles[newX][newY] = tile;
-
-        tile.x = newX;
-        tile.y = newY;
-
-        if (merge) {
-            merged[newX][newY] = true;
-        }
-
-        moved = true;
-    }
-
-    private boolean mergeTiles(@Nonnull final Tile tile,
-                               @Nullable final Tile next) {
-        if (next == null || tile.value != next.value || merged[next.x][next.y]) {
-            return false;
-        }
-
-        final int value = tile.value * 2;
-
-        final Tile merge = tilePool.get().init(next.x, next.y, value);
-        merge.moveTo(context.indexToXPosition(merge.x), context.indexToYPosition(merge.y));
-
-        addChild(merge);
-
-        animateScale(merge, 0, 1f).start();
-
-        updateTile(merge, tile.x, tile.y, next.x, next.y, true);
-
-        updateScore(value);
-
-        // create animation
-        animateMove(tile, next.x, next.y).listener(new Animation.SimpleListener() {
-            @Override
-            public void onComplete(@Nonnull Animation animation) {
-                tilePool.ret(tile);
-                tilePool.ret(next);
-            }
-        }).start();
-
-        return true;
-    }
-
-    @Nonnull
-    private Animation animateMove(@Nonnull final Tile tile, int x, int y) {
-        if (tile.animation != null) {
-            tile.animation.stop(true);
-        }
-
-        final float newX = context.indexToXPosition(x);
-        final float newY = context.indexToYPosition(y);
-
-        return tile.animation = Animation.create(context.durationMoveTween, X.to(tile, newX), Y.to(tile, newY));
-    }
-
-    @Nonnull
-    private Animation animateScale(@Nonnull final Tile tile, float from, float to) {
-        if (tile.animation != null) {
-            tile.animation.stop(true);
-        }
-
-        final float xPos = context.indexToXPosition(tile.x);
-        final float yPos = context.indexToYPosition(tile.y);
-
-        return tile.animation = Animation.create(context.durationScaleTween,
-                ScaleX.to(tile, from, to), ScaleY.to(tile, from, to),
-                X.to(tile, xPos + tile.width() / 2, xPos),
-                Y.to(tile, yPos + tile.height() / 2, yPos));
-    }
+    return canvas;
+  }
 }

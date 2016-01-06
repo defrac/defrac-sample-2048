@@ -38,6 +38,7 @@ public final class Grid extends DisplayObjectContainer {
     this.tiles = new Tile[context.tileCount][context.tileCount];
     this.cells = new Cell[context.tileCount][context.tileCount];
     this.tilePool = ObjectPools.newMaxSizePool(
+        0,
         context.tileCount + context.tileCount * context.tileCount,
         new Supplier<Tile>() {
           @Override

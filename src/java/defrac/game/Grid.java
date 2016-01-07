@@ -403,7 +403,7 @@ public final class Grid extends DisplayObjectContainer {
       tile.movement.stop(true);
     }
 
-    tile.movement = Animation.create(context.style.durationMoveTween, Move.to(tile, xPos, yPos));
+    tile.movement = Animation.create(stage(), context.style.durationMoveTween, Move.to(tile, xPos, yPos));
     tile.movement.start();
   }
 
@@ -413,10 +413,10 @@ public final class Grid extends DisplayObjectContainer {
     final float xPos = cell.xCoordinate();
     final float yPos = cell.yCoordinate();
 
-    tile.scaling = Animation.create(context.style.durationScaleTween, Scale.to(tile, 0f, 0f, 1f, 1f));
+    tile.scaling = Animation.create(context.animationSystem, context.style.durationScaleTween, Scale.to(tile, 0f, 0f, 1f, 1f));
     tile.scaling.start();
 
-    tile.movement = Animation.create(context.style.durationScaleTween, Move.to(tile, xPos + tile.width() / 2, yPos + tile.height() / 2, xPos, yPos));
+    tile.movement = Animation.create(context.animationSystem, context.style.durationScaleTween, Move.to(tile, xPos + tile.width() / 2, yPos + tile.height() / 2, xPos, yPos));
     tile.movement.start();
   }
 

@@ -7,7 +7,6 @@ import defrac.animation.property.display.Y;
 import defrac.display.Canvas;
 import defrac.display.DisplayObject;
 import defrac.display.DisplayObjectContainer;
-import defrac.display.Stage;
 import defrac.display.event.UIActionEvent;
 import defrac.math.easing.Quadratic;
 
@@ -61,6 +60,18 @@ public final class Game extends DisplayObjectContainer {
     });
   }
 
+  @Override
+  protected void onAttachToStage() {
+    super.onAttachToStage();
+    stage().animationSystem().add(context.animationSystem);
+  }
+
+  @Override
+  protected void onDetachFromStage() {
+    super.onDetachFromStage();
+    stage().animationSystem().remove(context.animationSystem);
+  }
+
   public void start() {
     context.gamePlay();
   }
@@ -76,7 +87,7 @@ public final class Game extends DisplayObjectContainer {
     tryAgainButton.visible(true);
 
     // fade out grid and fade in message and try again button
-    Animation.create(context.style.durationFadeTween,
+    Animation.create(context.animationSystem, context.style.durationFadeTween,
         Alpha.to(message, 1), Alpha.to(tryAgainButton, 1), Alpha.to(grid, 0.6f)).start();
   }
 
@@ -142,7 +153,7 @@ public final class Game extends DisplayObjectContainer {
     counterPlus.moveTo(counter.x(), counter.y()).
         centerRegistrationPoint();
 
-    final Animation animation = Animation.create(context.style.durationFadeTween,
+    final Animation animation = Animation.create(context.animationSystem, context.style.durationFadeTween,
         Alpha.to(counterPlus, 1f, 0f),
         Scale.to(counterPlus, 1f, 1f, 0.8f, 0.8f),
         Y.to(counterPlus, counter.y(), counter.y() + context.style.scoreCounterAnimationYOffset)

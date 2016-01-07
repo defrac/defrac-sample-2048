@@ -232,11 +232,11 @@ public final class Style {
   public final int scoreTitleFontColor;
 
   @Nonnegative
-  public final int durationScaleTween;
+  public final double durationScaleTween;
   @Nonnegative
-  public final int durationMoveTween;
+  public final double durationMoveTween;
   @Nonnegative
-  public final int durationFadeTween;
+  public final double durationFadeTween;
 
   @Nonnegative
   public static final int originalWidth = PixelUnits.LP_TO_PX.apply(624);
@@ -368,9 +368,9 @@ public final class Style {
     this.tileCorner = corner;
     this.tileFont = font;
 
-    this.durationMoveTween = 150;
-    this.durationScaleTween = 300;
-    this.durationFadeTween = 500;
+    this.durationMoveTween = 0.15;
+    this.durationScaleTween = 0.3;
+    this.durationFadeTween = 0.5;
   }
 
   public int tileFontColorFromValue(@Nonnegative final int value) {

@@ -1,11 +1,6 @@
 package defrac.game;
 
-import defrac.lang.Procedure;
-import defrac.lang.Supplier;
-import defrac.pool.ObjectPool;
-import defrac.pool.ObjectPools;
-import defrac.ui.Display;
-import defrac.ui.PixelUnits;
+import defrac.animation.AnimationSystem;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -40,6 +35,8 @@ public final class Context extends Model {
   public final int tileCount;
   @Nonnull
   public final Style style;
+  @Nonnull
+  public final AnimationSystem animationSystem = new AnimationSystem();
   @Nonnegative
   public int tileValue;
   @Nonnegative

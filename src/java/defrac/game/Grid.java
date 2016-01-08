@@ -403,7 +403,7 @@ public final class Grid extends DisplayObjectContainer {
       tile.movement.stop(true);
     }
 
-    tile.movement = Animation.create(stage(), context.style.durationMoveTween, Move.to(tile, xPos, yPos));
+    tile.movement = Animation.create(context.animationSystem, context.style.durationMoveTween, Move.to(tile, xPos, yPos));
     tile.movement.start();
   }
 

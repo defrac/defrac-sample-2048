@@ -14,7 +14,7 @@ import javax.annotation.Nullable;
 
 /**
  */
-public final class GameApp extends Screen {
+public final class GameApp extends ContentScreen {
   @Nullable
   private DisplayList displayList;
 
